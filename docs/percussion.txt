@@ -1,0 +1,41 @@
+I updated the Percussion here because i think its good pratice to match some kind of standard. 
+I choose the standard for Midi Channel 10, Drum kits Channel, instruments are in a fixed order.
+
+example for the first 12 notes on midi channel 10:
+
+35 Bass Drum 2
+36 Bass Drum 1
+37 Side Stick
+38 Snare Drum 1
+39 Hand Clap
+40 Snare Drum 2
+41 Low Tom 2
+42 Closed Hi-hat
+43 Low Tom 1
+44 Pedal Hi-hat
+45 Mid Tom 2
+46 Open Hi-hat
+47 Mid Tom 1
+48 High Tom 2
+
+more here: https://de.wikipedia.org/wiki/General_MIDI (German)
+
+The keys "A" to "L" are used for the drums now, so 9 keys in total. So just "Bass Drum" to "Low Tom" (35 - 43) from the Midi arrangement are in use. 
+this is not the best choice but useful enough and make it easy in case you will play midi files at some point. Also this list can be expanded according to the Midi standard. 
+
+The Sound now are Samples of an 1980's analog Drum synthesizer called TR808 by Roland, should be well known and had an iconic cheesy 80th sound! so this is proof enough to use it!
+
+the Drum samples names are like the Midi name but without whites-space:
+
+BassDrum2
+BassDrum1
+SideStick
+SnareDrum1
+HandClap
+SnareDrum2
+LowTom2
+ClosedHiHat
+LowTom1
+
+Green 
+17.12.2020
