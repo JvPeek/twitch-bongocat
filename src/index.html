@@ -1,32 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <title>JS Drum Kit</title>
     <link rel="stylesheet" href="bongocat.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap" rel="stylesheet">
-  </head>
-  <body onload="window.scrollTo(0, 0);">
+    <link href="//fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body onload="window.scrollTo(0, 0);">
     <div id="bongocat">
-      <div id="table">
-      </div>
-      <div id="instruments">
-        <div id="bongo"></div>
-        <div id="keyboard"></div>
-        <div id="cymbal"></div>
-        <div id="marimba"></div>
-        <div id="tambourine"></div>
-        <div id="cowbell"></div>
-      </div>
+        <div id="table"></div>
 
-      <div id="cat">
-        <div id="head"></div>
-        <div id="mouth"></div>
-        <div id="paw-left"></div>
-        <div id="paw-right"></div>
-        <div id="nametagwrapper"><span id="nametag"></span></div>
-      </div>
+        <div id="instruments">
+            <div id="bongo"></div>
+            <div id="keyboard"></div>
+            <div id="cymbal"></div>
+            <div id="marimba"></div>
+            <div id="tambourine"></div>
+            <div id="cowbell"></div>
+        </div>
+
+        <div id="cat">
+            <div id="head"></div>
+            <div id="mouth"></div>
+            <div id="paw-left"></div>
+            <div id="paw-right"></div>
+            <div id="nametagwrapper"><span id="nametag"></span></div>
+        </div>
     </div>
+
     <audio data-key="A" data-paw="paw-left"  data-instrument="bongo" src="sounds/bongocat/bongo0.mp3"></audio>
     <audio data-key="S" data-paw="paw-right" data-instrument="bongo" src="sounds/bongocat/bongo1.mp3"></audio>
     <audio data-key="D" data-paw="paw-left"  data-instrument="cowbell" src="sounds/bongocat/cowbell.mp3"></audio>
@@ -57,211 +58,170 @@
     <audio data-key="O" data-paw="paw-right" data-instrument="marimba" src="sounds/bongocat/marimba9.mp3"></audio>
     <audio data-key="P" data-paw="paw-right" data-instrument="marimba" src="sounds/bongocat/marimba0.mp3"></audio>
 
-    <script src="dist/twitch.js"></script>
+    <script src="//unpkg.com/twitch-js@>2.0.0-beta.41"></script>
 
     <script type="module">
+        const { Chat } = window.TwitchJs;
+        let token = undefined;
+        let username = undefined;
+        let volume = "1";
+        let channel = "jvpeek";
 
-      (function () {
-        const token = config().OAUTH_TOKEN;
-        const username = config().BOT_USERNAME;
-
-        const channel = config().CHANNEL_NAME;
         var bpm;
         var queue = [];
         var playing = false;
         setBPM(128);
-        const { api, chat } = new TwitchJs({ token, username });
+
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        // Parse channel parameter
+        if(urlParams.has('channel')) {
+            channel = urlParams.get('channel');
+        }
+        if(urlParams.has('volume')) {
+            volume = urlParams.get('volume');
+        }
 
         const handleMessage = (msg) => {
+            if (msg.event != "PRIVMSG") { return; }
 
-          if (!msg.message) { return; }
-          if (msg.message.startsWith("!")) {
-            if (msg.message.startsWith("!bongo ")) {
-              const notes = msg.message.substr(7);
-              addToQueue(notes.toUpperCase(), msg.username);
-            }
-            if (msg.message.startsWith("!bpm ")) {
-              const targetBPM = Number(msg.message.substr(5));
-              if (targetBPM < 512 && targetBPM > 49) {
-                setBPM(targetBPM);
-              }
-            }
-          }
+            if (!msg.message) { return; }
+            if (msg.message.startsWith("!")) {
+                if (msg.message.startsWith("!bongo ")) {
+                    const notes = msg.message.substr(7);
+                    addToQueue(notes.toUpperCase(), msg.username);
+                }
 
+                if (msg.message.startsWith("!bpm ")) {
+                    const targetBPM = Number(msg.message.substr(5));
+                    if (targetBPM < 512 && targetBPM > 49) {
+                        setBPM(targetBPM);
+                    }
+                }
+            }
         };
 
+        function setVolumes() {
+            let soundElements = document.querySelectorAll('audio');
+            soundElements.forEach(function(soundItem) {
+                soundItem.volume = volume;
+                //console.log(soundItem);
+            });
+        }
+
         function setBPM(targetBPM) {
-          console.log("current BPM: " + bpm + ". Target :" + Math.floor(60000 / targetBPM));
-          bpm = Math.floor(60000 / targetBPM);
+            console.log("current BPM: " + bpm + ". Target :" + Math.floor(60000 / targetBPM));
+            bpm = Math.floor(60000 / targetBPM);
         }
+
         function playSound(cmd) {
+            const audio = document.querySelector(`audio[data-key="${cmd}"]`);
+            setInstrument(audio.dataset.instrument);
+            setPaw(audio.dataset.paw);
+            if (!audio) return;
 
-          const audio = document.querySelector(`audio[data-key="${cmd}"]`);
-          setInstrument(audio.dataset.instrument);
-          setPaw(audio.dataset.paw);
-          if (!audio) return;
-
-
-          audio.currentTime = 0;
-          audio.play();
+            audio.currentTime = 0;
+            audio.play();
         }
+
         function addToQueue(noteString, username) {
-          var newNoteStack=[];
-          newNoteStack[0]=noteString;
-          newNoteStack[1]=username;
-          queue.push(newNoteStack);
+            var newNoteStack=[];
+            newNoteStack[0]=noteString;
+            newNoteStack[1]=username;
+            queue.push(newNoteStack);
         }
 
         function getFromQueue() {
-          var returnvalue = queue.pop();
-          return returnvalue;
+            var returnvalue = queue.pop();
+            return returnvalue;
         }
+
         function startQueue() {
-          setInterval(checkQueue, 1000);
+            setInterval(checkQueue, 1000);
         }
+
         function checkQueue() {
-          if (queue.length > 0 && playing == false) {
-            var notes = getFromQueue();
-            addNotes(notes[0], notes[1]);
-
-          }
-
-        }
-        function addNotes(noteString, username) {
-          var noteBatches = noteString.split(" ");
-          var thisNote;
-          var thisTimer;
-          introAnimation(username);
-
-          for (var noteBatch in noteBatches) {
-            noteBatches[noteBatch] = noteBatches[noteBatch].substr(0,5);
-            for (var i = 0; i<noteBatches[noteBatch].length; i++) {
-              thisNote = noteBatches[noteBatch].charAt(i);
-              thisTimer = 1000 + (bpm*noteBatch);
-              setTimeout(playSound,thisTimer,thisNote);
+            if (queue.length > 0 && playing == false) {
+                var notes = getFromQueue();
+                addNotes(notes[0], notes[1]);
             }
-          }
-          thisTimer += bpm;
-          setTimeout(outroAnimation,thisTimer);
         }
+
+        function addNotes(noteString, username) {
+            var noteBatches = noteString.split(" ");
+            var thisNote;
+            var thisTimer;
+            introAnimation(username);
+
+            for (var noteBatch in noteBatches) {
+                noteBatches[noteBatch] = noteBatches[noteBatch].substr(0,5);
+                for (var i = 0; i<noteBatches[noteBatch].length; i++) {
+                    thisNote = noteBatches[noteBatch].charAt(i);
+                    thisTimer = 1000 + (bpm*noteBatch);
+                    setTimeout(playSound,thisTimer,thisNote);
+                }
+            }
+
+            thisTimer += bpm;
+            setTimeout(outroAnimation,thisTimer);
+        }
+
         function introAnimation(username) {
-          document.getElementById("nametag").innerHTML=username + " entered the stage";
-          document.getElementById("bongocat").style.left="0px";
-          playing=true;
+            document.getElementById("nametag").innerHTML = username + " entered the stage";
+            document.getElementById("bongocat").style.left = "0px";
+            playing=true;
         }
+
         function outroAnimation() {
-          document.getElementById("bongocat").style.left="-1920px";
-          setInstrument("none");
-          setTimeout(function(){
-            playing = false;
-        }, 1000);
+            document.getElementById("bongocat").style.left = "-1920px";
+            setInstrument("none");
+            setTimeout(function(){
+                playing = false;
+            }, 1000);
         }
+
         function setInstrument(instrument) {
-          var c = document.getElementById("instruments").children;
-          for (var i = 0; i < c.length; i++) {
-            c[i].style.visibility = "hidden";
-          }
-          var newInstrument = document.getElementById(instrument);
-          if (!newInstrument) { return; }
-          newInstrument.style.visibility = "visible";
-
+            var c = document.getElementById("instruments").children;
+            for (var i = 0; i < c.length; i++) {
+                c[i].style.visibility = "hidden";
+            }
+            var newInstrument = document.getElementById(instrument);
+            if (!newInstrument) { return; }
+            newInstrument.style.visibility = "visible";
         }
+
         function setPaw(paw) {
-          var currentPaw = document.getElementById(paw);
-          currentPaw.style.backgroundPosition = "top right";
-          window.setTimeout(releasePaw, bpm/2, paw);
+            var currentPaw = document.getElementById(paw);
+            currentPaw.style.backgroundPosition = "top right";
+            window.setTimeout(releasePaw, bpm/2, paw);
         }
-        function releasePaw(paw) {
 
+        function releasePaw(paw) {
             var currentPaw = document.getElementById(paw);
             currentPaw.style.backgroundPosition = "top left";
         }
 
-        chat.on(TwitchJs.Chat.Events.ALL, handleMessage);
-
-        chat.connect().then(() => {
-          chat.join(channel);
-          startQueue();
-        });
-      })();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      // DO NOT SCROLL PAST THIS POINT ON STREAM
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      // SERIOUSLY, I MEAN IT!
-
-
-
-
-
-
-
-
-
-
-
-
-      function config() {
-        return {
-          BOT_USERNAME: 'yourname',
-          OAUTH_TOKEN: 'oauth:goes_here',
-          CHANNEL_NAME: 'yourname',
+        const run = async () => {
+            const chat = new Chat({
+                token,
+                username,
+                log: { level: "warn" }
+            });
+
+            chat.on("*", (message) => {
+                handleMessage(message);
+            });
+
+            await chat.connect();
+            await chat.join(channel);
+            console.log("Joining: " + channel);
+
+            setVolumes();
+            startQueue();
+            return chat;
         };
-      }
+
+        const chatobj = run();
     </script>
-  </body>
+</body>
 </html>
