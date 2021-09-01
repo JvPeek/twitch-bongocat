@@ -5,10 +5,9 @@ Be warned: This is a work in progress. It does work great but the setup process 
 Bongo Cat for Twitch lets the popular meme cat appear on your screen whenever someone in your Twitch chat issues a command.
 ### How do i install it?
 Easy.
-1. Add your Twitch Username and OAuth Token to `index.html` on the very bottom. You can get a Token here: https://twitchapps.com/tmi
+1. Add your Twitch Username to `index.html` at line 68 (`let channel = "USERNAME";`).
 2. Point your OBS browser source to the index.html file. Set the size of the browser to 1920x1080 pixels.
 
-**Warning**: NEVER show your OAuth token on stream or give it to anyone. Don't trust anyone.
 ### How do i use it?
 There are two commands:  
  * `!bpm`
