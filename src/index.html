@@ -62,15 +62,23 @@
     <script type="module">
 
       (function () {
-        const token = config().OAUTH_TOKEN;
-        const username = config().BOT_USERNAME;
-
-        const channel = config().CHANNEL_NAME;
+        const token = undefined;
+        const username = undefined;
+        let channel = "jvpeek";
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        if(urlParams.has('channel')) {
+          channel = urlParams.get('channel');
+        }
         var bpm;
         var queue = [];
         var playing = false;
         setBPM(128);
-        const { api, chat } = new TwitchJs({ token, username });
+        const { Chat } = window.TwitchJs;
+        const chat = new Chat({
+          username,
+          token
+        });
 
         const handleMessage = (msg) => {
 
@@ -185,83 +193,6 @@
         });
       })();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      // DO NOT SCROLL PAST THIS POINT ON STREAM
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      // SERIOUSLY, I MEAN IT!
-
-
-
-
-
-
-
-
-
-
-
-
-      function config() {
-        return {
-          BOT_USERNAME: 'yourname',
-          OAUTH_TOKEN: 'oauth:goes_here',
-          CHANNEL_NAME: 'yourname',
-        };
-      }
     </script>
   </body>
 </html>
