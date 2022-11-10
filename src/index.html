@@ -80,40 +80,16 @@
     <audio data-key="" data-paw="paw-right" data-instrument="DX7" src="sounds/Synth/c5.wav"></audio>
 
     -->
-
+    
     <script src="dist/tmi.min.js"></script>
 
     <script type="module">
 
-      import { config } from './config.js';
       (function () {
-        const token = config().OAUTH_TOKEN;
-        const username = config().BOT_USERNAME;
-
-        const channel = config().CHANNEL_NAME;
         var bpm;
         var queue = [];
         var playing = false;
         setBPM(128);
-        const { api, chat } = new TwitchJs({ token, username });
-
-        const handleMessage = (msg) => {
-
-          if (!msg.message) { return; }
-          if (msg.message.startsWith("!")) {
-            if (msg.message.startsWith("!bongo ")) {
-              const notes = msg.message.substr(7);
-              addToQueue(notes.toUpperCase(), msg.username);
-            }
-            if (msg.message.startsWith("!bpm ")) {
-              const targetBPM = Number(msg.message.substr(5));
-              if (targetBPM < 512 && targetBPM > 49) {
-                setBPM(targetBPM);
-              }
-            }
-          }
-
-        };
 
         function setBPM(targetBPM) {
           console.log("current BPM: " + bpm + ". Target :" + Math.floor(60000 / targetBPM));
@@ -202,12 +178,37 @@
             currentPaw.style.backgroundPosition = "top left";
         }
 
-        chat.on(TwitchJs.Chat.Events.ALL, handleMessage);
 
-        chat.connect().then(() => {
-          chat.join(channel);
-          startQueue();
+        // tmijs
+        const channel = location.hash || 'jvpeek';
+        const chatClient = new tmi.Client({
+          channels: [channel]
         });
+        chatClient.connect();
+
+        chatClient.on('connected', (address, port) => {
+          console.log(`Connected to ${address}:${port}, channel ${channel}.`);
+        });
+
+        chatClient.on('message', (channel, tags, message, self) => {
+
+          if (message.startsWith("!")) {
+            if (message.startsWith("!bongo ")) {
+              const notes = message.substr(7);
+              console.log(`${tags.username} plays ${notes}.`);
+              addToQueue(notes.toUpperCase(), tags.username);
+            }
+            if (message.startsWith("!bpm ")) {
+              const targetBPM = Number(message.substr(5));
+              if (targetBPM < 512 && targetBPM > 49) {
+                console.log(`${tags.username} set BPM to ${targetBPM}.`);
+                setBPM(targetBPM);
+              }
+            }
+          }
+        });
+
+        startQueue();
       })();
     </script>
   </body>
