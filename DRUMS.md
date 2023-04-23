@@ -1,5 +1,5 @@
 ## New Drums in bongo cat 
-in this version drums was addet to the classic Bongo cat Sounds 
+This version added 4 drumsounds to the classic Bongo cat Sounds 
 ### how to use ?
 Drums on this Keys
  * X - Base drum
