@@ -1,5 +1,6 @@
-import {parseSong as parseSongBongo} from "./modules/bongo.js";
-import {extensionFeatures, experimentalFeatures} from "./experimental/bongox.js";
+import { parseSong as parseSongBongo } from "./modules/bongo.js";
+import { extensionFeatures, experimentalFeatures } from "./experimental/bongox.js";
+import { playMidi } from "./experimental/midi.js";
 
 // ====================================================== //
 // ================== type definitions ================== //
@@ -75,35 +76,27 @@ notations["bongo+"] = parseSongBongo;
 // ====================================================== //
 // =================== helper methods =================== //
 // ====================================================== //
-function setVolume(volumeParam)
-{
+function setVolume(volumeParam) {
   volume = Math.min(1.0, Math.max(0, Number(volumeParam)));
-  if (mainGainNode)
-  {
+  if (mainGainNode) {
     mainGainNode.gain.value = volume * synthDampening;
   }
 }
 
-function setMaxSongLength(maxSongLengthParam)
-{
+function setMaxSongLength(maxSongLengthParam) {
   maxSongLength = Number(maxSongLengthParam);
-  if (maxSongLength > 0)
-  {
+  if (maxSongLength > 0) {
     maxSongLength *= 1000;
-  } else
-  {
+  } else {
     maxSongLength = -1;
   }
 }
 
-function clamp(value, min, max)
-{
-  if (value > max)
-  {
+function clamp(value, min, max) {
+  if (value > max) {
     return max;
   }
-  if (value < min)
-  {
+  if (value < min) {
     return min;
   }
   return value;
@@ -114,43 +107,33 @@ function clampBpm(bpm) {
   return clamp(bpm, minBpm, maxBpm)
 }
 
-function setBPM(targetBPM, username)
-{
+function setBPM(targetBPM, username) {
   targetBPM = Number(targetBPM);
-  if (isNaN(targetBPM))
-  {
+  if (isNaN(targetBPM)) {
     return;
   }
   targetBPM = clampBpm(targetBPM)
-  if (username === undefined)
-  {
+  if (username === undefined) {
     console.log("<Global> current BPM: " + bpm.global + ". Target: " + Math.floor(60000 / targetBPM));
     bpm.global = Math.floor(60000 / targetBPM);
-  } else
-  {
+  } else {
     console.log("<User> current BPM for " + username + ": " + bpm.user[username] + ". Target: " + Math.floor(60000 / targetBPM));
     bpm.user[username] = Math.floor(60000 / targetBPM);
   }
 }
 
-function getBPM(username)
-{
-  if (username === undefined || bpm.user[username] === undefined)
-  {
+function getBPM(username) {
+  if (username === undefined || bpm.user[username] === undefined) {
     return bpm.global;
-  } else
-  {
+  } else {
     return bpm.user[username];
   }
 }
 
-function playSound(cmd, cBpm)
-{
+function playSound(cmd, cBpm) {
   const audio = document.querySelector(`audio[data-key="${cmd}"]`);
-  if (!audio)
-  {
-    if (cmd != ".")
-    {
+  if (!audio) {
+    if (cmd != ".") {
       console.error("No audio for ", cmd);
     }
     return;
@@ -158,13 +141,14 @@ function playSound(cmd, cBpm)
   setPaw(audio.dataset.paw, cBpm);
   setInstrument(audio.dataset.instrument);
 
+  playMidi(cmd); // add midiplay here //Green
+
   audio.currentTime = 0;
   audio.volume = volume;
   audio.play();
 }
 
-function prepareSynth(type)
-{
+function prepareSynth(type) {
   audioContext = new AudioContext();
   mainGainNode = audioContext.createGain();
   mainGainNode.connect(audioContext.destination);
@@ -173,17 +157,14 @@ function prepareSynth(type)
   oscillatorNode.connect(mainGainNode);
   oscillatorNode.type = type;
   synthStarted = false;
-  return {"ctx": audioContext, "gain": mainGainNode, "osc": oscillatorNode};
+  return { "ctx": audioContext, "gain": mainGainNode, "osc": oscillatorNode };
 }
 
-function playSynthSound(frequency, time)
-{
-  if (!audioContext || !mainGainNode || !oscillatorNode)
-  {
+function playSynthSound(frequency, time) {
+  if (!audioContext || !mainGainNode || !oscillatorNode) {
     return;
   }
-  if (!synthStarted)
-  {
+  if (!synthStarted) {
     oscillatorNode.start();
     oscillatorNode.stop(maxSongLength / 1000);
     synthStarted = true;
@@ -192,38 +173,30 @@ function playSynthSound(frequency, time)
   oscillatorNode.frequency.setValueAtTime(frequency, time);
 }
 
-function muteSynth(time)
-{
-  if (!mainGainNode)
-  {
+function muteSynth(time) {
+  if (!mainGainNode) {
     return;
   }
   mainGainNode.gain.setValueAtTime(0, time);
 }
 
-function introAnimation(song)
-{
+function introAnimation(song) {
   let username = song.performer;
-  if (!song.author || song.performer == song.author)
-  {
+  if (!song.author || song.performer == song.author) {
     document.getElementById("nametag").innerHTML = username + " entered the stage";
   }
-  else
-  {
+  else {
     document.getElementById("nametag").innerHTML = username + " performs " + song.title + " by " + song.author;
   }
 
-  if (song.dedications)
-  {
-    song.dedications = song.dedications.filter((dedication, index) =>
-    {
+  if (song.dedications) {
+    song.dedications = song.dedications.filter((dedication, index) => {
       return song.dedications.indexOf(dedication) === index;
     });
 
     document.getElementById("dedications").innerHTML = "This song is dedicated to " + song.dedications.join(", ");
     document.getElementById("dedications").style.visibility = "visible";
-  } else
-  {
+  } else {
     document.getElementById("dedications").innerHTML = "";
     document.getElementById("dedications").style.visibility = "hidden";
   }
@@ -232,103 +205,86 @@ function introAnimation(song)
   playing = true;
 }
 
-function outroAnimation()
-{
+function outroAnimation() {
   document.getElementById("bongocat").style.left = "-1920px";
   document.getElementById("dedications").style.visibility = "hidden";
   setInstrument("none");
-  for (let id of currentSong.timeoutIDs)
-  {
+  for (let id of currentSong.timeoutIDs) {
     clearTimeout(id);
   }
-  if (mainGainNode)
-  {
+  if (mainGainNode) {
     mainGainNode.gain.value = 0;
   }
-  if (oscillatorNode && synthStarted)
-  {
+  if (oscillatorNode && synthStarted) {
     oscillatorNode.stop();
     synthStarted = false;
   }
-  setTimeout(function ()
-  {
+  setTimeout(function () {
     playing = false;
     currentSong = null;
   }, 1000);
 }
 
-function errorAnimation(error)
-{
+function errorAnimation(error) {
   document.getElementById("nametag").innerHTML = document.getElementById("nametag").innerHTML.split(" ")[0] + " crashed the cat :(";
   document.getElementById("dedications").style.visibility = "visible";
   document.getElementById("dedications").innerHTML = "Tag scisneromam to fix: " + error;
   setInstrument("none");
-  for (let id of currentSong.timeoutIDs)
-  {
+  for (let id of currentSong.timeoutIDs) {
     clearTimeout(id);
   }
-  if (mainGainNode)
-  {
+  if (mainGainNode) {
     mainGainNode.gain.value = 0;
   }
-  if (oscillatorNode && synthStarted)
-  {
+  if (oscillatorNode && synthStarted) {
     oscillatorNode.stop();
     synthStarted = false;
   }
   setTimeout(outroAnimation, 5000);
 }
 
-function setInstrument(instrument)
-{
+function setInstrument(instrument) {
   var c = document.getElementById("instruments").children;
-  for (var i = 0; i < c.length; i++)
-  {
+  for (var i = 0; i < c.length; i++) {
     c[i].style.visibility = "hidden";
   }
   var newInstrument = document.getElementById(instrument);
-  if (!newInstrument) {return;}
+  if (!newInstrument) { return; }
   newInstrument.style.visibility = "visible";
 
 }
 
-function setPaw(paw, cBpm)
-{
+
+
+function setPaw(paw, cBpm) {
   var currentPaw = document.getElementById(paw);
   currentPaw.style.backgroundPosition = "top right";
   window.setTimeout(releasePaw, 1000 * (60 / cBpm / 2), paw);
 }
 
-function releasePaw(paw)
-{
+function releasePaw(paw) {
 
   var currentPaw = document.getElementById(paw);
   currentPaw.style.backgroundPosition = "top left";
 }
 
-function saveCmd(cmd)
-{
-  return (...args) =>
-  {
-    try
-    {
+function saveCmd(cmd) {
+  return (...args) => {
+    try {
       cmd(...args);
-    } catch (error)
-    {
+    } catch (error) {
       errorAnimation(error);
       console.error(error);
     }
   };
 }
 
-function preparePlaybackObject(cmd, time, ...args)
-{
-  return {time: time, cmd: saveCmd(cmd), args: args};
+function preparePlaybackObject(cmd, time, ...args) {
+  return { time: time, cmd: saveCmd(cmd), args: args };
 }
 
-var helperMethods = {clamp, clampBpm, setBPM, getBPM, playSound, prepareSynth, playSynthSound, muteSynth, introAnimation, outroAnimation, setInstrument, setPaw, releasePaw, preparePlaybackObject};
-for (const key in helperMethods)
-{
+var helperMethods = { clamp, clampBpm, setBPM, getBPM, playSound, prepareSynth, playSynthSound, muteSynth, introAnimation, outroAnimation, setInstrument, setPaw, releasePaw, preparePlaybackObject };
+for (const key in helperMethods) {
   window[key] = helperMethods[key];
 }
 window.helperMethods = helperMethods;
@@ -345,20 +301,16 @@ console.log(helperMethods);
  *
  * @param {Song} song
  */
-function addToQueue(song)
-{
+function addToQueue(song) {
   //pre check for valid song
-  if (!song.notes)
-  {
+  if (!song.notes) {
     return;
   }
 
-  if (!song.notation)
-  {
+  if (!song.notation) {
     song.notation = defaultNotation;
   }
-  if (!song.performer)
-  {
+  if (!song.performer) {
     song.performer = "anonymous";
   }
 
@@ -369,15 +321,12 @@ function addToQueue(song)
  * Returns the oldest song in the queue 
  * @returns {Song}
  */
-function getFromQueue()
-{
+function getFromQueue() {
 
   var returnvalue;
-  if (stackMode)
-  {
+  if (stackMode) {
     returnvalue = queue.pop();
-  } else
-  {
+  } else {
     returnvalue = queue.shift();
   }
   return returnvalue;
@@ -388,8 +337,7 @@ function getFromQueue()
  * once per second
  * @date 5/7/2023 - 2:10:23 PM
  */
-function startQueue()
-{
+function startQueue() {
   setInterval(checkQueue, 1000);
 }
 
@@ -401,31 +349,24 @@ function startQueue()
  * then its played back
  * @date 5/7/2023 - 2:10:56 PM
  */
-function checkQueue()
-{
-  if (queue.length > 0 && playing == false)
-  {
+function checkQueue() {
+  if (queue.length > 0 && playing == false) {
     var song = getFromQueue();
     let handler = notations[song.notation];
-    if (song.extension && !disableExtensions)
-    {
+    if (song.extension && !disableExtensions) {
       handler = extensionFeatures[song.notation] || handler;
     }
-    if (song.experimental && !disableExperiments)
-    {
+    if (song.experimental && !disableExperiments) {
       handler = experimentalFeatures[song.notation] || handler;
     }
-    if (handler)
-    {
+    if (handler) {
       currentSong = song;
       currentSong.timeoutIDs = [];
       let playbacks = handler(song);
       introAnimation(song);
       console.log(playbacks);
-      for (let playback of playbacks)
-      {
-        if (maxSongLength > 0 && playback.time > maxSongLength)
-        {
+      for (let playback of playbacks) {
+        if (maxSongLength > 0 && playback.time > maxSongLength) {
           currentSong.timeoutIDs.push(setTimeout(outroAnimation, maxSongLength + 1000)); //1 sek
           break;
         }
@@ -440,8 +381,7 @@ function checkQueue()
 // ====================================================== //
 // ===================== remote play ==================== //
 // ====================================================== //
-async function playFromGithub(song, user)
-{
+async function playFromGithub(song, user) {
   const userRegex = /@\w+/g;
   let dedications = song.match(userRegex)?.map(s => s.replace("@", ""));
   song = song.replaceAll(userRegex, ""); //remove usernames from string
@@ -450,11 +390,9 @@ async function playFromGithub(song, user)
   song += ".json";
 
   console.log("Playing", song, "from github for", user);
-  for (let githubUrl of githubUrls)
-  {
+  for (let githubUrl of githubUrls) {
     const response = await fetch(encodeURI(githubUrl + song.trim()));
-    if (response.status != 200)
-    {
+    if (response.status != 200) {
       continue;
     }
     //console.log(response)
@@ -476,56 +414,45 @@ async function playFromGithub(song, user)
 // ====================================================== //
 const commands = {};
 
-function enableBongo(args)
-{
-  if (isSuperUser(args.tags))
-  {
+function enableBongo(args) {
+  if (isSuperUser(args.tags)) {
     console.log("aktiviere Bongo");
     bongoEnabled = true;
   }
 }
 commands["!enablebongo"] = enableBongo;
 
-function disableBongo(args)
-{
-  if (isSuperUser(args.tags))
-  {
+function disableBongo(args) {
+  if (isSuperUser(args.tags)) {
     console.log("deaktiviere Bongo");
     bongoEnabled = false;
   }
 }
 commands["!disablebongo"] = disableBongo;
 
-function clearQueue(args)
-{
-  if (isSuperUser(args.tags))
-  {
+function clearQueue(args) {
+  if (isSuperUser(args.tags)) {
     queue = [];
   }
 }
 
 commands["!bongoclear"] = clearQueue;
 
-function skipSong(args)
-{
-  if (!isSuperUser(args.tags))
-  {
+function skipSong(args) {
+  if (!isSuperUser(args.tags)) {
     return;
   }
-  if (!currentSong)
-  {
+  if (!currentSong) {
     return;
   }
 
-  if (!currentSong.timeoutIDs)
-  {
+  if (!currentSong.timeoutIDs) {
     return;
   }
 
   console.log(`${args.tags.username} cleared the current song ${currentSong}`);
 
-  for (let id of currentSong.timeoutIDs)
-  {
+  for (let id of currentSong.timeoutIDs) {
     clearTimeout(id);
   }
 
@@ -534,10 +461,8 @@ function skipSong(args)
 
 commands["!bongoskip"] = skipSong;
 
-function setVolumeCommand(args)
-{
-  if (!isSuperUser(args.tags))
-  {
+function setVolumeCommand(args) {
+  if (!isSuperUser(args.tags)) {
     return;
   }
   setVolume(args.arg);
@@ -545,10 +470,8 @@ function setVolumeCommand(args)
 
 commands["!bongovolume"] = setVolumeCommand;
 
-function setMaxSongLengthCommand(args)
-{
-  if (!isSuperUser(args.tags))
-  {
+function setMaxSongLengthCommand(args) {
+  if (!isSuperUser(args.tags)) {
     return;
   }
   setMaxSongLength(args.arg);
@@ -560,67 +483,58 @@ commands["!bongomaxsonglength"] = setMaxSongLengthCommand;
 // ==================== user commands =================== //
 // ====================================================== //
 
-function bongoDefault(args)
-{
-  if (!bongoEnabled)
-  {
+function bongoDefault(args) {
+  if (!bongoEnabled) {
     return;
   }
   //const notes = args.message.substr(8);
   console.log(args);
   const notes = args.arg;
   console.log(`${args.tags.username} plays ${notes}. with ${defaultNotation}`);
-  let song = {performer: args.tags.username, notes: notes, notation: defaultNotation};
+  let song = { performer: args.tags.username, notes: notes, notation: defaultNotation };
   addToQueue(song);
 }
 
-function bongoPlus(args)
-{
-  if (!bongoEnabled)
-  {
+function bongoPlus(args) {
+  if (!bongoEnabled) {
     return;
   }
   //const notes = args.message.substr(8);
   console.log(args);
   const notes = args.arg;
   console.log(`${args.tags.username} plays+ ${notes}.`);
-  let song = {performer: args.tags.username, notes: notes, notation: "bongo"};
+  let song = { performer: args.tags.username, notes: notes, notation: "bongo" };
   addToQueue(song);
 }
 commands["!bongo"] = bongoDefault;
 commands["!bongo+"] = bongoPlus;
 
-function bongo(args)
-{
-  if (!bongoEnabled)
-  {
+function bongo(args) {
+  if (!bongoEnabled) {
     return;
   }
   //const notes = message.substr(7);
   const notes = args.arg;
   console.log(`${args.tags.username} plays ${notes}.`);
-  let song = {performer: args.tags.username, notes: notes, notation: "legacy"};
+  let song = { performer: args.tags.username, notes: notes, notation: "legacy" };
   addToQueue(song);
 }
 commands["!bongol"] = bongo;
 
-function bongox(args)
-{
+function bongox(args) {
   let split = args.arg.indexOf(" ");
   let experiment = args.arg.slice(0, split);
   let notes = args.arg.slice(split + 1);
   let username = args.tags.username;
-  let song = {performer: args.tags.username, notes: notes, notation: experiment, "experimental": true, "extension": true};
+  let song = { performer: args.tags.username, notes: notes, notation: experiment, "experimental": true, "extension": true };
   addToQueue(song);
   //experimentalFeatures[experiment]?.(notes, username)
 }
 commands["!bongox"] = bongox;
 
 
-function changeBpm(args)
-{
-  if (!bongoEnabled)
-  {
+function changeBpm(args) {
+  if (!bongoEnabled) {
     return;
   }
   //const targetBPM = Number(message.substr(5));
@@ -633,10 +547,8 @@ function changeBpm(args)
 }
 commands["!bpm"] = changeBpm;
 
-function bongoPlay(args)
-{
-  if (!bongoEnabled)
-  {
+function bongoPlay(args) {
+  if (!bongoEnabled) {
     return;
   }
 
@@ -645,25 +557,20 @@ function bongoPlay(args)
 }
 commands["!bongoplay"] = bongoPlay;
 
-function handleCommand(message, command, arg, tags)
-{
+function handleCommand(message, command, arg, tags) {
 
   let msg = message.toLowerCase();
   let longestCmd = "";
-  for (let cmd in commands)
-  {
-    if (msg.startsWith(cmd))
-    {
-      if (cmd.length > longestCmd.length)
-      {
+  for (let cmd in commands) {
+    if (msg.startsWith(cmd)) {
+      if (cmd.length > longestCmd.length) {
         console.log(cmd, "beat", longestCmd);
         longestCmd = cmd;
       }
     }
   }
-  if (longestCmd)
-  {
-    commands[longestCmd]?.({message: message, command: command, arg: arg, tags: tags});
+  if (longestCmd) {
+    commands[longestCmd]?.({ message: message, command: command, arg: arg, tags: tags });
   }
   /*
   let handler = commands[command]
@@ -680,45 +587,37 @@ function handleCommand(message, command, arg, tags)
 let params = new URLSearchParams(document.location.search);
 
 let maxNotesPerBatch = params.get("maxNotesPerBatch");
-if (maxNotesPerBatch && Number(maxNotesPerBatch))
-{
+if (maxNotesPerBatch && Number(maxNotesPerBatch)) {
   window.maxNotesPerBatch = Number(maxNotesPerBatch);
 }
 let maxPbmParam = params.get("maxBpm");
-if (maxPbmParam && Number(maxPbmParam))
-{
+if (maxPbmParam && Number(maxPbmParam)) {
   maxBpm = Number(maxPbmParam);
 }
 let minPbmParam = params.get("minBpm");
-if (minPbmParam && Number(minPbmParam))
-{
+if (minPbmParam && Number(minPbmParam)) {
   minBpm = Number(minPbmParam);
 }
 
-if (params.get("stackMode"))
-{
+if (params.get("stackMode")) {
   stackMode = true;
 }
 
-if (params.get("disableExperiments"))
-{
+if (params.get("disableExperiments")) {
   disableExperiments = true;
 }
 
-if (params.get("disableExtensions"))
-{
+if (params.get("disableExtensions")) {
   disableExtensions = true;
 }
 
 let maxSongLengthParam = params.get("maxSongLength");
-if (maxSongLengthParam && !isNaN(Number(maxSongLengthParam)))
-{
+if (maxSongLengthParam && !isNaN(Number(maxSongLengthParam))) {
   setMaxSongLength(maxSongLengthParam);
 }
 
 let volumeParam = params.get("volume");
-if (volumeParam && !isNaN(Number(volumeParam)))
-{
+if (volumeParam && !isNaN(Number(volumeParam))) {
   setVolume(volumeParam);
 }
 
@@ -731,19 +630,15 @@ const chatClient = new tmi.Client({
 });
 chatClient.connect();
 
-chatClient.on('connected', (address, port) =>
-{
+chatClient.on('connected', (address, port) => {
   console.log(`Connected to ${address}:${port}, channel ${channel}.`);
 });
-function isSuperUser(tags)
-{
+function isSuperUser(tags) {
   return tags.mod || tags.badges?.broadcaster || tags.username == "jvpeek";
 }
-chatClient.on('message', (channel, tags, message, self) =>
-{
+chatClient.on('message', (channel, tags, message, self) => {
 
-  if (message.startsWith("!"))
-  {
+  if (message.startsWith("!")) {
     let args = message.split(/\s+/);
     let cmd = args[0];
     args = args.splice(1);
